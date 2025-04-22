@@ -2,9 +2,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-
 interface ProductForm {
 	title: string;
 	price: string;
@@ -26,6 +25,21 @@ export default function Dashboard() {
 		buy_url: "",
 		description: "",
 	});
+	const [products, setProducts] = useState<any[]>([]);
+
+	useEffect(() => {
+		const fetchProducts = async () => {
+			const { data, error } = await supabase
+				.from("products")
+				.select("*")
+				.eq("site_id", siteId);
+
+			if (error) console.error("Error fetching products:", error);
+			else setProducts(data);
+		};
+
+		fetchProducts();
+	}, [siteId]);
 
 	const handleChange = (
 		e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -85,6 +99,23 @@ export default function Dashboard() {
 			>
 				Save Product
 			</button>
+			<div className="mt-8">
+				<h2 className="text-lg font-semibold mb-4">Saved Products</h2>
+				{products.map((product) => (
+					<div key={product.id} className="mb-6 border-b pb-4">
+						<img
+							src={product.image_url}
+							alt={product.title}
+							className="w-32 h-32 object-cover mb-2"
+						/>
+						<h3 className="text-md font-bold">{product.title}</h3>
+						<p className="text-sm text-gray-600">
+							${product.price}
+						</p>
+						<p className="text-sm">{product.description}</p>
+					</div>
+				))}
+			</div>
 		</div>
 	);
 }
