@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+      {
+        "source": "/.well-known/agents.json",
+        "destination": "/api/manifest/YOUR_SITE_ID"
+      }
+    ]
+  }

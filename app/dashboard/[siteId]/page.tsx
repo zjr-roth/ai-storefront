@@ -1,9 +1,8 @@
-// app/dashboard/[siteId]/page.tsx
 "use client";
 
-import { useParams } from "next/navigation";
 import { useState, ChangeEvent, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
 interface ProductForm {
 	title: string;
 	price: string;
@@ -13,8 +12,8 @@ interface ProductForm {
 }
 
 export default function Dashboard() {
-	const params = useParams(); // ✅ Fix: use the hook
-	const siteId = params?.siteId as string; // or: decodeURIComponent(params?.siteId)
+	const supabase = createClientComponentClient();
+	const [siteId, setSiteId] = useState<string | null>(null);
 
 	const [form, setForm] = useState<ProductForm>({
 		title: "",
@@ -27,7 +26,51 @@ export default function Dashboard() {
 	});
 	const [products, setProducts] = useState<any[]>([]);
 
+	// 🔁 Auto-register site on load
 	useEffect(() => {
+		const registerSiteIfNeeded = async () => {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			const domain = window.location.hostname;
+
+			if (!user) return;
+
+			// Check if this site already exists
+			const { data: existingSite, error: fetchError } = await supabase
+				.from("sites")
+				.select("id")
+				.eq("domain", domain)
+				.single();
+
+			if (existingSite) {
+				setSiteId(existingSite.id);
+			} else {
+				const { data: newSite, error: insertError } = await supabase
+					.from("sites")
+					.insert({
+						domain,
+						user_id: user.id,
+					})
+					.select()
+					.single();
+
+				if (insertError) {
+					console.error("Site insert failed:", insertError.message);
+					return;
+				}
+
+				setSiteId(newSite.id);
+			}
+		};
+
+		registerSiteIfNeeded();
+	}, []);
+
+	// 🔁 Once siteId is ready, fetch products
+	useEffect(() => {
+		if (!siteId) return;
+
 		const fetchProducts = async () => {
 			const { data, error } = await supabase
 				.from("products")
