@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metrics Testing Page</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+    }
+    button {
+      background: #0070f3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 0;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #0058cc;
+    }
+    #logs {
+      background: #f0f0f0;
+      padding: 1rem;
+      border-radius: 5px;
+      margin-top: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+    .section {
+      border: 1px solid #ddd;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 5px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    input, select {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Storefront Metrics Testing</h1>
+
+  <div class="section">
+    <h2>1. Site Registration & Status</h2>
+    <div>
+      <button id="checkRegistration">Check Site Registration</button>
+      <button id="registerSite">Register Site</button>
+    </div>
+    <div id="siteInfo"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. Test Metrics Recording</h2>
+    <div>
+      <select id="eventType">
+        <option value="manifest_fetched">manifest_fetched</option>
+        <option value="product_synced">product_synced</option>
+        <option value="product_added">product_added</option>
+        <option value="product_updated">product_updated</option>
+        <option value="test_event">test_event</option>
+      </select>
+      <button id="recordEvent">Record Event</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Test Full Flow</h2>
+    <button id="testFullFlow">Test Registration + Manifest Fetch</button>
+  </div>
+
+  <div class="section">
+    <h2>4. View Recent Events</h2>
+    <button id="viewEvents">Check Recent Events</button>
+    <div id="eventsDisplay"></div>
+  </div>
+
+  <h2>Logs</h2>
+  <div id="logs"></div>
+
+  <script>
+    // Utility functions
+    const domain = window.location.hostname;
+    const isLocal = domain === "localhost" || domain.startsWith("127.");
+    const baseUrl = isLocal ? "http://localhost:3000" : `https://${domain}`;
+
+    function log(message, type = 'info') {
+      const logs = document.getElementById('logs');
+      const time = new Date().toLocaleTimeString();
+      logs.innerHTML += `<div class="${type}">[${time}] ${message}</div>`;
+      logs.scrollTop = logs.scrollHeight;
+      console.log(`[${type}] ${message}`);
+    }
+
+    async function fetchJson(url, options = {}) {
+      try {
+        const res = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+          }
+        });
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          log(`Response is not JSON: ${text}`, 'error');
+          throw new Error('Invalid JSON response');
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP error ${res.status}`);
+        }
+
+        return data;
+      } catch (err) {
+        log(`Error fetching ${url}: ${err.message}`, 'error');
+        throw err;
+      }
+    }
+
+    // Site registration
+    document.getElementById('checkRegistration').addEventListener('click', async () => {
+      try {
+        log('Checking site registration...');
+        const siteId = localStorage.getItem('site_id');
+
+        if (!siteId) {
+          log('No site_id found in localStorage', 'info');
+          document.getElementById('siteInfo').innerHTML = '<p>Status: Not registered</p>';
+          return;
+        }
+
+        log(`Found site_id in localStorage: ${siteId}`);
+        document.getElementById('siteInfo').innerHTML = `
+          <p>Status: Registered</p>
+          <p>Site ID: ${siteId}</p>
+        `;
+      } catch (err) {
+        log(`Failed to check registration: ${err.message}`, 'error');
+      }
+    });
+
+    document.getElementById('registerSite').addEventListener('click', async () => {
+      try {
+        log('Registering site...');
+        const data = await fetchJson(`${baseUrl}/api/register-site`, {
+          method: 'POST',
+          body: JSON.stringify({ domain })
+        });
+
+        localStorage.setItem('site_id', data.site_id);
+        log(`Site registered successfully with ID: ${data.site_id}`, 'success');
+        document.getElementById('siteInfo').innerHTML = `
+          <p>Status: Registered</p>
+          <p>Site ID: ${data.site_id}</p>
+        `;
+      } catch (err) {
+        log(`Site registration failed: ${err.message}`, 'error');
+      }
+    });
+
+    // Record event
+    document.getElementById('recordEvent').addEventListener('click', async () => {
+      try {
+        const siteId = localStorage.getItem('site_id');
+        if (!siteId) {
+          log('No site_id found. Please register the site first.', 'error');
+          return;
+        }
+
+        const eventType = document.getElementById('eventType').value;
+        log(`Recording ${eventType} event...`);
+
+        const data = await fetchJson(`${baseUrl}/api/metrics/record`, {
+          method: 'POST',
+          body: JSON.stringify({
+            site_id: siteId,
+            event_type: eventType,
+            payload: {
+              test: true,
+              timestamp: new Date().toISOString(),
+              url: window.location.href
+            }
+          })
+        });
+
+        log(`Event recorded successfully: ${JSON.stringify(data)}`, 'success');
+      } catch (err) {
+        log(`Failed to record event: ${err.message}`, 'error');
+      }
+    });
+
+    // Test full flow
+    document.getElementById('testFullFlow').addEventListener('click', async () => {
+      try {
+        // 1. Ensure site is registered
+        log('Starting full flow test...');
+        let siteId = localStorage.getItem('site_id');
+
+        if (!siteId) {
+          log('No site_id found. Registering site...');
+          const regData = await fetchJson(`${baseUrl}/api/register-site`, {
+            method: 'POST',
+            body: JSON.stringify({ domain })
+          });
+
+          siteId = regData.site_id;
+          localStorage.setItem('site_id', siteId);
+          log(`Site registered with ID: ${siteId}`, 'success');
+        } else {
+          log(`Using existing site_id: ${siteId}`);
+        }
+
+        // 2. Fetch .well-known/agents.json
+        log('Fetching agents.json...');
+        const agentsUrl = `${baseUrl}/.well-known/agents.json`;
+        const agentsData = await fetchJson(agentsUrl);
+
+        if (!agentsData.manifest_url) {
+          throw new Error('No manifest_url in agents.json response');
+        }
+
+        log(`Found manifest_url: ${agentsData.manifest_url}`);
+
+        // 3. Fetch manifest
+        log('Fetching manifest...');
+        const manifestData = await fetchJson(agentsData.manifest_url);
+        log(`Manifest fetched successfully with ${manifestData.products?.length || 0} products`, 'success');
+
+        // 4. Record manifest fetch
+        log('Recording manifest_fetched event...');
+        const recordData = await fetchJson(`${baseUrl}/api/metrics/record`, {
+          method: 'POST',
+          body: JSON.stringify({
+            site_id: siteId,
+            event_type: 'manifest_fetched',
+            payload: {
+              url: window.location.href,
+              timestamp: new Date().toISOString(),
+              user_agent: navigator.userAgent
+            }
+          })
+        });
+
+        log('Manifest fetch event recorded successfully!', 'success');
+        log('Full flow test completed successfully!', 'success');
+      } catch (err) {
+        log(`Full flow test failed: ${err.message}`, 'error');
+      }
+    });
+
+    // View recent events
+    document.getElementById('viewEvents').addEventListener('click', async () => {
+      try {
+        const siteId = localStorage.getItem('site_id');
+        if (!siteId) {
+          log('No site_id found. Please register the site first.', 'error');
+          return;
+        }
+
+        log('This would normally query your Supabase database directly');
+        log('For testing purposes, you can check your Supabase dashboard');
+
+        document.getElementById('eventsDisplay').innerHTML = `
+          <p>To view events, check your Supabase dashboard or create an API endpoint to fetch events.</p>
+          <p>SQL query to run in Supabase:</p>
+          <pre>SELECT * FROM sync_events WHERE site_id = '${siteId}' ORDER BY created_at DESC LIMIT 10;</pre>
+        `;
+      } catch (err) {
+        log(`Failed to fetch events: ${err.message}`, 'error');
+      }
+    });
+
+    // Run check on page load
+    document.getElementById('checkRegistration').click();
+  </script>
+</body>
+</html>

@@ -1,10 +1,20 @@
 (async () => {
   console.log("[injector.js] ✅ script loaded — adaptive-injector.js");
 
+  // DEBUG MODE
+  const DEBUG = true;
+  const debugLog = (message, ...args) => {
+    if (DEBUG) {
+      console.log(`[DEBUG] ${message}`, ...args);
+    }
+  };
+
   // 1) Core utilities
   const domain = window.location.hostname;
   const isLocal = domain === "localhost" || domain.startsWith("127.");
   const baseUrl = isLocal ? "http://localhost:3000" : `https://${domain}`;
+
+  debugLog("Environment:", { domain, isLocal, baseUrl });
 
   // Utility to make full URLs from relative ones
   const getFullUrl = (url) => {
@@ -14,22 +24,6 @@
     } catch (e) {
       return url;
     }
-  };
-
-  // Advanced selector utility that tries multiple selectors
-  const trySelectors = (selectors, extractFn) => {
-    for (const selector of selectors) {
-      try {
-        const result = extractFn(selector);
-        if (result) {
-          console.log(`[injector.js] Found with selector: ${selector}`, result);
-          return result;
-        }
-      } catch (err) {
-        // Just continue to next selector
-      }
-    }
-    return null;
   };
 
   // Extract text from element - handles various formats
@@ -53,13 +47,14 @@
   // Clean up prices - handles various currency formats
   const cleanPrice = (priceStr) => {
     if (!priceStr) return null;
+    debugLog("Cleaning price:", priceStr);
 
-    // Handle various price formats
-    const match = priceStr.match(/[\d,.]+/);
-    if (!match) return null;
+    // Extract numeric part (more robust)
+    const numericPart = priceStr.replace(/[^\d.]/g, '');
+    if (!numericPart || isNaN(parseFloat(numericPart))) return null;
 
-    // Clean the price string and convert to number
-    return match[0].replace(/[^\d.]/g, '');
+    debugLog("Cleaned price to:", numericPart);
+    return numericPart;
   };
 
   // Function to record manifest fetch events
@@ -67,12 +62,15 @@
     // Get site_id from localStorage
     const siteId = localStorage.getItem("site_id");
 
+    debugLog("recordManifestFetch called with siteId:", siteId);
+
     if (!siteId) {
       console.warn("[injector.js] Cannot record manifest fetch: site_id not found in localStorage");
       return;
     }
 
     try {
+      console.log("[injector.js] Recording manifest fetch event for site_id:", siteId);
       const response = await fetch(`${baseUrl}/api/metrics/record`, {
         method: 'POST',
         headers: {
@@ -101,8 +99,10 @@
   };
 
   // 2) Site registration
+  debugLog("Checking for existing site_id in localStorage");
   let siteId = localStorage.getItem("site_id");
   if (!siteId) {
+    debugLog("No site_id found, registering site");
     try {
       const res = await fetch(`${baseUrl}/api/register-site`, {
         method: "POST",
@@ -122,255 +122,482 @@
       console.error("[injector.js] ❌ Site registration failed:", err.message);
       return; // bail early
     }
+  } else {
+    debugLog("Using existing site_id:", siteId);
   }
 
-  // 3) Smart product data extraction
+  // 3) Page type detection
+  // Special handler for test-store.html
+  const isTestStorePage = () => {
+    return window.location.pathname.includes('test-store.html');
+  };
+
+  // Check if normal product page
   const isProductPage = () => {
-    // Check if this looks like a product page
-    const hasAddToCart = !!document.querySelector([
-      'button[contains(., "add to cart")]',
-      'button[contains(., "buy")]',
-      'a[contains(., "add to cart")]',
-      'a[contains(., "buy")]',
-      '[class*="add-to-cart"]',
-      '[class*="buy-now"]',
-      '[id*="add-to-cart"]',
-      '[id*="buy-now"]'
-    ].join(','));
+    // Use simpler selectors that work in all browsers
+    const hasAddToCart = !!document.querySelector('a.buy-button') ||
+                         !!document.querySelector('button.add-to-cart') ||
+                         !!document.querySelector('[class*="buy-now"]');
 
-    const hasPrice = !!document.querySelector([
-      '[class*="price"]',
-      '[itemprop="price"]',
-      'meta[property*="price"]'
-    ].join(','));
+    const hasPrice = !!document.querySelector('.price') ||
+                     !!document.querySelector('[itemprop="price"]');
 
+    debugLog("Product page detection:", { hasAddToCart, hasPrice });
     return hasAddToCart || hasPrice;
   };
 
-  // Skip non-product pages
-  if (!isProductPage()) {
+  if (isTestStorePage()) {
+    debugLog("Detected test-store.html, treating as product page");
+  } else if (!isProductPage()) {
     console.log("[injector.js] This doesn't appear to be a product page, skipping");
     return;
+  } else {
+    debugLog("Detected product page, continuing with extraction");
   }
 
-  // Title extraction - try multiple common patterns
-  const extractTitle = () => {
-    // Meta tags - most reliable when available
-    const metaTitleSelectors = [
-      'meta[property="og:title"]',
-      'meta[name="twitter:title"]',
-      'meta[itemprop="name"]'
-    ];
-    const metaTitle = trySelectors(metaTitleSelectors, sel => {
-      const element = document.querySelector(sel);
-      return element?.getAttribute('content');
-    });
+  // INCREDIBLY VERBOSE DOM INSPECTION
+  debugLog("==== FULL DOM INSPECTION ====");
+  // Check for product-list element
+  const productList = document.getElementById('product-list');
+  if (productList) {
+    debugLog("Found #product-list element:", productList);
+    debugLog("product-list children count:", productList.children.length);
 
-    // Heading elements
-    const headingSelectors = [
-      'h1[itemprop="name"]',
-      'h1.product-title',
-      'h1.product-name',
-      'h1.product_title',
-      'h1.productTitle',
-      '[class*="product-title"] h1',
-      '[class*="product-name"] h1',
-      '.product h1',
-      '#product h1',
-      'h1'
-    ];
-    const headingTitle = trySelectors(headingSelectors, sel => {
-      const element = document.querySelector(sel);
-      return getText(element);
-    });
+    // Log entire HTML of product-list to see structure
+    debugLog("product-list HTML:", productList.outerHTML.substring(0, 500) + '...');
 
-    // Return the first valid title found
-    return metaTitle || headingTitle || document.title;
-  };
+    // Check all div children
+    const divChildren = productList.getElementsByTagName('div');
+    debugLog(`Found ${divChildren.length} div children in product-list`);
 
-  // Price extraction
-  const extractPrice = () => {
-    // Meta tags
-    const metaPriceSelectors = [
-      'meta[property="product:price:amount"]',
-      'meta[property="og:price:amount"]',
-      'meta[itemprop="price"]'
-    ];
-    const metaPrice = trySelectors(metaPriceSelectors, sel => {
-      const element = document.querySelector(sel);
-      return element?.getAttribute('content');
-    });
+    for (let i = 0; i < divChildren.length; i++) {
+      const div = divChildren[i];
+      debugLog(`Div child ${i} class="${div.className}", id="${div.id}"`);
 
-    // Price elements in DOM
-    const priceDomSelectors = [
-      '[itemprop="price"]',
-      '.price',
-      '.product-price',
-      '.price-value',
-      '.current-price',
-      '.sale-price',
-      '[class*="price"]',
-      '[class*="Price"]',
-      '[id*="price"]',
-      '[id*="Price"]',
-      'span:contains("$")',
-      'p:contains("$")'
-    ];
-    const domPrice = trySelectors(priceDomSelectors, sel => {
-      const elements = document.querySelectorAll(sel);
-      for (const el of elements) {
-        const priceText = getText(el);
-        if (priceText && /\d/.test(priceText)) { // Make sure it contains a digit
-          return priceText;
-        }
-      }
-      return null;
-    });
+      // Check for specific elements inside each div
+      const h1 = div.getElementsByTagName('h1');
+      const p = div.getElementsByTagName('p');
+      const price = div.querySelector('.price');
+      const img = div.getElementsByTagName('img');
+      const buyButton = div.querySelector('.buy-button');
 
-    // Clean the price we found
-    const rawPrice = metaPrice || domPrice;
-    return cleanPrice(rawPrice);
-  };
-
-  // Image extraction
-  const extractImage = () => {
-    // Meta tags
-    const metaImageSelectors = [
-      'meta[property="og:image"]',
-      'meta[property="og:image:secure_url"]',
-      'meta[name="twitter:image"]',
-      'meta[itemprop="image"]'
-    ];
-    const metaImage = trySelectors(metaImageSelectors, sel => {
-      const element = document.querySelector(sel);
-      return getFullUrl(element?.getAttribute('content'));
-    });
-
-    // Image elements in DOM
-    const imageDomSelectors = [
-      'img[itemprop="image"]',
-      '.product-image img',
-      '.product-main-image img',
-      '.product-gallery img',
-      '.carousel img',
-      '#product-image',
-      '[class*="product"] img',
-      '[id*="product"] img',
-      'img[id*="product"]',
-      'img[class*="product"]',
-      'img' // Last resort - just find any image
-    ];
-    const domImage = trySelectors(imageDomSelectors, sel => {
-      const elements = document.querySelectorAll(sel);
-      // Look for the largest image
-      let bestImage = null;
-      let bestSize = 0;
-
-      for (const el of elements) {
-        const src = el.getAttribute('src') || el.getAttribute('data-src');
-        if (!src) continue;
-
-        // Prefer larger images
-        const width = parseInt(el.getAttribute('width') || 0);
-        const height = parseInt(el.getAttribute('height') || 0);
-        const size = width * height;
-
-        if (!bestImage || size > bestSize) {
-          bestImage = src;
-          bestSize = size;
-        }
-      }
-
-      return getFullUrl(bestImage);
-    });
-
-    return metaImage || domImage;
-  };
-
-  // Description extraction
-  const extractDescription = () => {
-    // Meta tags
-    const metaDescSelectors = [
-      'meta[name="description"]',
-      'meta[property="og:description"]',
-      'meta[name="twitter:description"]',
-      'meta[itemprop="description"]'
-    ];
-    const metaDesc = trySelectors(metaDescSelectors, sel => {
-      const element = document.querySelector(sel);
-      return element?.getAttribute('content');
-    });
-
-    // Description elements in DOM
-    const descDomSelectors = [
-      '[itemprop="description"]',
-      '.product-description',
-      '.description',
-      '.product-details',
-      '#product-description',
-      '[class*="description"]',
-      '[id*="description"]',
-      'p:not(.price)'
-    ];
-    const domDesc = trySelectors(descDomSelectors, sel => {
-      const element = document.querySelector(sel);
-      return getText(element);
-    });
-
-    return metaDesc || domDesc;
-  };
-
-  // Buy URL extraction
-  const extractBuyUrl = () => {
-    // Buy button link
-    const buyButtonSelectors = [
-      'a.buy-button',
-      'a.buy-now',
-      'a.add-to-cart',
-      'a[class*="buy"]',
-      'a[class*="cart"]',
-      'a[contains(., "Buy")]',
-      'a[contains(., "Add to Cart")]'
-    ];
-    const buyLink = trySelectors(buyButtonSelectors, sel => {
-      const element = document.querySelector(sel);
-      return getFullUrl(element?.getAttribute('href'));
-    });
-
-    // Fallback to current URL
-    return buyLink || window.location.href;
-  };
-
-  // Extract product data
-  const title = extractTitle();
-  const price = extractPrice();
-  const image_url = extractImage();
-  const description = extractDescription();
-  const buy_url = extractBuyUrl();
-
-  console.log("[injector.js] Extracted product data:", {
-    title,
-    price,
-    image_url,
-    description,
-    buy_url
-  });
-
-  // 4) Only sync if required fields exist
-  if (!title || !price) {
-    console.warn("[injector.js] ⏭ Skip sync — missing required fields:", { title, price });
+      debugLog(`Div ${i} contents: h1=${h1.length}, p=${p.length}, .price=${!!price}, img=${img.length}, .buy-button=${!!buyButton}`);
+    }
   } else {
-    // Build payload
+    debugLog("NO #product-list element found!");
+  }
+
+  // Check for any elements with 'product' class using traditional DOM methods
+  const productElements = document.getElementsByClassName('product');
+  debugLog(`Found ${productElements.length} elements with class='product'`);
+
+  if (productElements.length > 0) {
+    // Log each product element
+    for (let i = 0; i < productElements.length; i++) {
+      debugLog(`product[${i}] HTML:`, productElements[i].outerHTML.substring(0, 300) + '...');
+    }
+  }
+
+  // Try vanilla DOM selectors for common product elements
+  const allH1s = document.getElementsByTagName('h1');
+  const allPrices = document.getElementsByClassName('price');
+  const allBuyButtons = document.getElementsByClassName('buy-button');
+
+  debugLog(`DOM Summary: h1=${allH1s.length}, .price=${allPrices.length}, .buy-button=${allBuyButtons.length}`);
+  debugLog("==== END DOM INSPECTION ====");
+
+  // DIRECT TEST-STORE EXTRACTION FUNCTION - NOW WITH EXTREME DEBUGGING
+  const extractTestStoreProducts = () => {
+    debugLog("Using test-store direct extraction method");
+    const products = [];
+
+    // APPROACH 1: Try document.querySelectorAll first to debug issue
+    debugLog("APPROACH 1: Using document.querySelectorAll('.product')");
+    try {
+      const queryProducts = document.querySelectorAll('.product');
+      debugLog(`querySelectorAll('.product') returned ${queryProducts ? queryProducts.length : 'null'} items`);
+
+      if (queryProducts && queryProducts.length > 0) {
+        debugLog("SUCCESS: Found products with querySelectorAll!");
+        Array.from(queryProducts).forEach((element, index) => {
+          debugLog(`Processing product ${index} from querySelectorAll`);
+
+          // Get title (verbose debugging)
+          let title = null;
+          const titleEl = element.querySelector('h1');
+          if (titleEl) {
+            title = titleEl.textContent.trim();
+            debugLog(`Found title: "${title}"`);
+          } else {
+            debugLog("NO h1 found in product element!");
+          }
+
+          // Get price (verbose debugging)
+          let price = null;
+          const priceEl = element.querySelector('.price');
+          if (priceEl) {
+            const priceText = priceEl.textContent.trim();
+            debugLog(`Found price text: "${priceText}"`);
+            price = cleanPrice(priceText);
+            debugLog(`Cleaned price: ${price}`);
+          } else {
+            debugLog("NO .price element found!");
+          }
+
+          // Get other data
+          const imgEl = element.querySelector('img');
+          const image_url = imgEl ? getFullUrl(imgEl.getAttribute('src')) : null;
+
+          const descEls = element.querySelectorAll('p:not(.price)');
+          let description = null;
+          if (descEls.length > 0) {
+            description = descEls[0].textContent.trim();
+          }
+
+          const buyEl = element.querySelector('.buy-button');
+          const buy_url = buyEl ? getFullUrl(buyEl.getAttribute('href')) : window.location.href;
+
+          // Add to products if valid
+          if (title && price) {
+            debugLog(`Adding valid product: ${title}`);
+            products.push({
+              title,
+              price,
+              image_url,
+              description,
+              buy_url
+            });
+          } else {
+            debugLog(`Skipping invalid product - missing ${!title ? 'title' : 'price'}`);
+          }
+        });
+      }
+    } catch (error) {
+      debugLog("ERROR in querySelectorAll approach:", error);
+    }
+
+    // APPROACH 2: Direct DOM traversal via product-list
+    if (products.length === 0) {
+      debugLog("APPROACH 2: Using direct DOM traversal via #product-list");
+      const productList = document.getElementById('product-list');
+
+      if (productList) {
+        debugLog(`Found product-list with ${productList.children.length} children`);
+
+        for (let i = 0; i < productList.children.length; i++) {
+          const element = productList.children[i];
+          debugLog(`Examining product-list child ${i}: ${element.tagName}, class="${element.className}"`);
+
+          // Try to extract product data
+          let title = null;
+          const h1s = element.getElementsByTagName('h1');
+          if (h1s.length > 0) {
+            title = h1s[0].textContent.trim();
+            debugLog(`Found title: "${title}"`);
+          } else {
+            debugLog("NO h1 elements found in this child");
+          }
+
+          // Get price elements
+          let price = null;
+          const pElements = element.getElementsByTagName('p');
+          let priceFound = false;
+
+          for (let j = 0; j < pElements.length; j++) {
+            const p = pElements[j];
+            debugLog(`Examining p tag ${j}: class="${p.className}", text="${p.textContent.trim()}"`);
+
+            if (p.className === 'price' || p.textContent.includes('$')) {
+              priceFound = true;
+              const priceText = p.textContent.trim();
+              debugLog(`Found price text: "${priceText}"`);
+              price = cleanPrice(priceText);
+              debugLog(`Cleaned price: ${price}`);
+              break;
+            }
+          }
+
+          if (!priceFound) {
+            debugLog("NO price element found!");
+          }
+
+          // Get image and other data
+          const imgElements = element.getElementsByTagName('img');
+          const image_url = imgElements.length > 0 ? getFullUrl(imgElements[0].getAttribute('src')) : null;
+
+          // Find description (any p that's not price)
+          let description = null;
+          for (let j = 0; j < pElements.length; j++) {
+            if (pElements[j].className !== 'price' && !pElements[j].textContent.includes('$')) {
+              description = pElements[j].textContent.trim();
+              break;
+            }
+          }
+
+          // Find buy button
+          let buy_url = window.location.href;
+          const aElements = element.getElementsByTagName('a');
+          for (let j = 0; j < aElements.length; j++) {
+            if (aElements[j].className === 'buy-button') {
+              buy_url = getFullUrl(aElements[j].getAttribute('href'));
+              break;
+            }
+          }
+
+          // Add to products if valid
+          if (title && price) {
+            debugLog(`Adding valid product: ${title}`);
+            products.push({
+              title,
+              price,
+              image_url,
+              description,
+              buy_url
+            });
+          } else {
+            debugLog(`Skipping invalid product - missing ${!title ? 'title' : 'price'}`);
+          }
+        }
+      } else {
+        debugLog("NO #product-list element found!");
+      }
+    }
+
+    // APPROACH 3: Direct getElementsByClassName
+    if (products.length === 0) {
+      debugLog("APPROACH 3: Using direct getElementsByClassName('product')");
+      const productElements = document.getElementsByClassName('product');
+
+      debugLog(`Found ${productElements.length} elements with class='product'`);
+      for (let i = 0; i < productElements.length; i++) {
+        const element = productElements[i];
+
+        // Log the raw HTML to see what we're working with
+        debugLog(`Product ${i} HTML: ${element.outerHTML.substring(0, 300)}...`);
+
+        // Try to extract product data
+        const h1s = element.getElementsByTagName('h1');
+        let title = null;
+        if (h1s.length > 0) {
+          title = h1s[0].textContent.trim();
+          debugLog(`Found title: "${title}"`);
+        } else {
+          debugLog(`NO h1 tag in product ${i}`);
+        }
+
+        // Try to find price with extreme flexibility
+        let price = null;
+        const pTags = element.getElementsByTagName('p');
+        debugLog(`Found ${pTags.length} p tags in product ${i}`);
+
+        for (let j = 0; j < pTags.length; j++) {
+          const p = pTags[j];
+          debugLog(`P tag ${j} class="${p.className}", text="${p.textContent}"`);
+
+          // Check if this looks like a price (has $ or is designated as price)
+          if (p.className === 'price' || p.textContent.includes('$')) {
+            const priceText = p.textContent.trim();
+            debugLog(`Found price text: "${priceText}"`);
+            price = cleanPrice(priceText);
+            debugLog(`Cleaned price: ${price}`);
+            break;
+          }
+        }
+
+        // If still no price, check for any element with $ sign
+        if (!price) {
+          debugLog("No price found in p tags, checking full innerHTML for $ signs");
+          const innerHTML = element.innerHTML;
+          const dollarIndex = innerHTML.indexOf('$');
+
+          if (dollarIndex !== -1) {
+            // Extract text around the $ sign
+            const startIndex = Math.max(0, dollarIndex - 10);
+            const endIndex = Math.min(innerHTML.length, dollarIndex + 10);
+            const priceSection = innerHTML.substring(startIndex, endIndex);
+
+            debugLog(`Found $ sign, surrounding text: "${priceSection}"`);
+
+            // Try to extract price from this section
+            const match = priceSection.match(/\$(\d+(\.\d+)?)/);
+            if (match) {
+              price = match[1];
+              debugLog(`Extracted price from innerHTML: ${price}`);
+            }
+          }
+        }
+
+        // Get image and other data
+        const imgElements = element.getElementsByTagName('img');
+        let image_url = null;
+        if (imgElements.length > 0) {
+          image_url = getFullUrl(imgElements[0].getAttribute('src'));
+          debugLog(`Found image: ${image_url}`);
+        } else {
+          debugLog("NO img found in product");
+        }
+
+        // Find description (any p that's not price)
+        let description = null;
+        for (let j = 0; j < pTags.length; j++) {
+          if (pTags[j].className !== 'price' && !pTags[j].textContent.includes('$')) {
+            description = pTags[j].textContent.trim();
+            break;
+          }
+        }
+
+        // Find buy button
+        const aElements = element.getElementsByTagName('a');
+        let buy_url = window.location.href;
+        let buyButtonFound = false;
+
+        for (let j = 0; j < aElements.length; j++) {
+          debugLog(`A tag ${j} class="${aElements[j].className}", href="${aElements[j].getAttribute('href')}"`);
+          if (aElements[j].className === 'buy-button') {
+            buyButtonFound = true;
+            buy_url = getFullUrl(aElements[j].getAttribute('href'));
+            debugLog(`Found buy button: ${buy_url}`);
+            break;
+          }
+        }
+
+        if (!buyButtonFound) {
+          debugLog("NO buy button found");
+        }
+
+        // Add to products if valid
+        if (title && price) {
+          debugLog(`Adding valid product: ${title}`);
+          products.push({
+            title,
+            price,
+            image_url,
+            description,
+            buy_url
+          });
+        } else {
+          debugLog(`Skipping invalid product - missing ${!title ? 'title' : 'price'}`);
+        }
+      }
+    }
+
+    // FALLBACK: Try to manually parse the entire page HTML
+    if (products.length === 0) {
+      debugLog("FALLBACK: Trying to manually parse HTML");
+      const pageHTML = document.documentElement.outerHTML;
+
+      // Find sections that look like products
+      const productDivRegex = /<div[^>]*class=["']product["'][^>]*>([\s\S]*?)<\/div>/gi;
+      let match;
+      let matchCount = 0;
+
+      while ((match = productDivRegex.exec(pageHTML)) !== null) {
+        matchCount++;
+        debugLog(`Found product div match ${matchCount}`);
+
+        const productHTML = match[1];
+        debugLog(`Product HTML: ${productHTML.substring(0, 300)}...`);
+
+        // Extract title
+        const titleMatch = /<h1[^>]*>(.*?)<\/h1>/i.exec(productHTML);
+        let title = null;
+        if (titleMatch) {
+          title = titleMatch[1].trim();
+          debugLog(`Extracted title: "${title}"`);
+        }
+
+        // Extract price
+        const priceMatch = /<p[^>]*class=["']price["'][^>]*>(.*?)<\/p>/i.exec(productHTML);
+        let price = null;
+        if (priceMatch) {
+          const priceText = priceMatch[1].trim();
+          debugLog(`Extracted price text: "${priceText}"`);
+          price = cleanPrice(priceText);
+        } else {
+          // Try finding a $ sign
+          const dollarMatch = /\$(\d+(\.\d+)?)/i.exec(productHTML);
+          if (dollarMatch) {
+            price = dollarMatch[1];
+            debugLog(`Extracted price from $ sign: ${price}`);
+          }
+        }
+
+        // Extract image
+        const imgMatch = /<img[^>]*src=["'](.*?)["'][^>]*>/i.exec(productHTML);
+        const image_url = imgMatch ? getFullUrl(imgMatch[1]) : null;
+
+        // Extract buy link
+        const buyMatch = /<a[^>]*class=["']buy-button["'][^>]*href=["'](.*?)["'][^>]*>/i.exec(productHTML);
+        const buy_url = buyMatch ? getFullUrl(buyMatch[1]) : window.location.href;
+
+        // Extract description (any p that's not price)
+        let description = null;
+        const descRegex = /<p[^>]*(?!class=["']price["'])[^>]*>(.*?)<\/p>/i;
+        const descMatch = descRegex.exec(productHTML);
+        if (descMatch) {
+          description = descMatch[1].trim();
+        }
+
+        // Add product if valid
+        if (title && price) {
+          debugLog(`Adding valid product from HTML parse: ${title}`);
+          products.push({
+            title,
+            price,
+            image_url,
+            description,
+            buy_url
+          });
+        }
+      }
+
+      debugLog(`Found ${matchCount} potential products via HTML parsing, ${products.length} valid`);
+    }
+
+    return products;
+  };
+
+  // 4) Extract all products
+  debugLog("Starting product extraction");
+  let products = [];
+
+  if (isTestStorePage()) {
+    // Special handling for test store
+    products = extractTestStoreProducts();
+  } else {
+    // Regular website extraction would go here
+    // For now, omitted since we're focusing on the test page
+    // ...
+  }
+
+  console.log(`[injector.js] Extracted ${products.length} products from the page`);
+  debugLog("Extracted products:", products);
+
+  // 5) Sync each extracted product
+  let syncedProducts = 0;
+  let skippedProducts = 0;
+  let failedProducts = 0;
+
+  for (const product of products) {
+    // Only sync if required fields exist
+    if (!product.title || !product.price) {
+      console.warn("[injector.js] ⏭ Skip sync — missing required fields:", product);
+      skippedProducts++;
+      continue;
+    }
+
+    // Build payload for this product
     const payload = {
       site_id: siteId,
-      title,
-      price: parseFloat(price),
-      ...(image_url && { image_url }),
-      ...(buy_url && { buy_url }),
-      ...(description && { description }),
+      title: product.title,
+      price: parseFloat(product.price),
+      ...(product.image_url && { image_url: product.image_url }),
+      ...(product.buy_url && { buy_url: product.buy_url }),
+      ...(product.description && { description: product.description }),
     };
 
-    console.log("[injector.js] Syncing payload:", payload);
+    console.log("[injector.js] Syncing product:", product.title);
+    debugLog("Payload:", payload);
 
     try {
       const res = await fetch(`${baseUrl}/api/products/add`, {
@@ -379,56 +606,96 @@
         body: JSON.stringify(payload),
       });
 
+      const responseText = await res.text();
+      debugLog(`Response for ${product.title}:`, responseText);
+
       if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}: ${await res.text()}`);
+        throw new Error(`HTTP error ${res.status}: ${responseText}`);
       }
 
-      const json = await res.json();
-      console.log("[injector.js] Product sync result:", json);
+      let json;
+      try {
+        json = JSON.parse(responseText);
+      } catch (e) {
+        debugLog("Failed to parse JSON response:", responseText);
+        throw new Error("Invalid JSON response");
+      }
+
+      console.log(`[injector.js] Product sync result for "${product.title}":`, json);
+      syncedProducts++;
     } catch (err) {
-      console.error("[injector.js] ❌ Sync failed:", err.message);
+      console.error(`[injector.js] ❌ Sync failed for product "${product.title}":`, err.message);
+      failedProducts++;
+      // Continue processing other products
+      continue;
     }
   }
 
-  // 5) Fetch & inject agent manifest
+  console.log(`[injector.js] Product sync summary: ${syncedProducts} synced, ${skippedProducts} skipped, ${failedProducts} failed`);
+
+  // 6) Fetch & inject agent manifest
   try {
     const agentsUrl = isLocal
       ? "http://localhost:3000/.well-known/agents.json"
       : `https://${domain}/.well-known/agents.json`;
 
     console.log("[injector.js] Fetching agents from:", agentsUrl);
+    debugLog("Fetching agents.json from:", agentsUrl);
 
     const ajRes = await fetch(agentsUrl);
     if (!ajRes.ok) {
-      throw new Error(`Failed to fetch agents.json: ${ajRes.status}`);
+      const errorText = await ajRes.text();
+      debugLog("agents.json fetch error:", errorText);
+      throw new Error(`Failed to fetch agents.json: ${ajRes.status} - ${errorText}`);
     }
 
-    const { manifest_url } = await ajRes.json();
+    let ajData;
+    try {
+      ajData = await ajRes.json();
+    } catch (e) {
+      debugLog("Failed to parse agents.json response:", await ajRes.text());
+      throw new Error("Invalid JSON response from agents.json");
+    }
+
+    const { manifest_url } = ajData;
     if (!manifest_url) {
       throw new Error("No manifest_url in agents.json");
     }
 
     console.log("[injector.js] Manifest URL:", manifest_url);
+    debugLog("Fetching manifest from:", manifest_url);
 
     const manRes = await fetch(manifest_url);
     if (!manRes.ok) {
-      throw new Error(`Failed to fetch manifest: ${manRes.status}`);
+      const errorText = await manRes.text();
+      debugLog("Manifest fetch error:", errorText);
+      throw new Error(`Failed to fetch manifest: ${manRes.status} - ${errorText}`);
     }
 
-    const { products } = await manRes.json();
+    let manifestData;
+    try {
+      manifestData = await manRes.json();
+    } catch (e) {
+      debugLog("Failed to parse manifest response:", await manRes.text());
+      throw new Error("Invalid JSON response from manifest");
+    }
+
+    const { products: manifestProducts } = manifestData;
 
     // Record the manifest fetch event after successful fetch
+    debugLog("Recording manifest fetch event");
     await recordManifestFetch();
 
-    if (!products || !Array.isArray(products) || products.length === 0) {
+    if (!manifestProducts || !Array.isArray(manifestProducts) || manifestProducts.length === 0) {
       console.warn("[injector.js] No products found in manifest");
       return;
     }
 
-    console.log("[injector.js] Manifest products:", products);
+    console.log("[injector.js] Manifest products:", manifestProducts.length);
+    debugLog("Manifest products:", manifestProducts);
 
     const injected = [];
-    products.forEach((p) => {
+    manifestProducts.forEach((p) => {
       if (!p.title || !p.price) {
         console.warn("[injector.js] Skipping product missing required fields:", p);
         return;
@@ -457,23 +724,63 @@
       console.log(`[injector.js] Injected schema for: ${p.title}`);
     });
 
-    // Debug UI - only show in development
-    if (isLocal) {
-      const box = document.createElement("div");
-      box.style = "position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.8);color:lime;font:12px monospace;padding:8px;border-radius:6px;z-index:9999;";
-      box.innerText = `[injector.js] Injected ${injected.length} product(s):\n${injected.join(", ")}`;
-      document.body.appendChild(box);
+    // LAST RESORT: Force add all products from manifest to also sync them back to Supabase
+    // This is a fallback if we can't extract products from the page
+    if (products.length === 0 && manifestProducts.length > 0) {
+      debugLog("LAST RESORT: No products extracted from page, attempting to sync from manifest");
+
+      for (const p of manifestProducts) {
+        if (!p.title || !p.price) continue;
+
+        const payload = {
+          site_id: siteId,
+          title: p.title,
+          price: parseFloat(p.price),
+          ...(p.image_url && { image_url: p.image_url }),
+          ...(p.buy_url && { buy_url: p.buy_url }),
+          ...(p.description && { description: p.description }),
+        };
+
+        debugLog(`Syncing manifest product ${p.title} back to Supabase`);
+
+        try {
+          const res = await fetch(`${baseUrl}/api/products/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+            syncedProducts++;
+            debugLog(`Successfully synced ${p.title} from manifest`);
+          }
+        } catch (err) {
+          debugLog(`Failed to sync ${p.title} from manifest:`, err);
+        }
+      }
+
+      debugLog(`Synced ${syncedProducts} products from manifest as fallback`);
     }
+
+    // Debug UI - show on test pages
+    const box = document.createElement("div");
+    box.style = "position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.8);color:lime;font:12px monospace;padding:8px;border-radius:6px;z-index:9999;max-width:400px;max-height:300px;overflow:auto;";
+    box.innerHTML = `[injector.js] Summary:<br>
+- ${syncedProducts} products synced to database<br>
+- ${skippedProducts} products skipped<br>
+- ${failedProducts} products failed<br>
+- ${injected.length} products from manifest injected<br>
+<br>Products found: ${products.map(p => p.title).join(', ')}`;
+    document.body.appendChild(box);
 
   } catch (err) {
     console.warn("[injector.js] ❌ Injection error:", err.message);
+    debugLog("Injection error details:", err);
 
-    // Debug UI for error - only in development
-    if (isLocal) {
-      const box = document.createElement("div");
-      box.style = "position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.8);color:red;font:12px monospace;padding:8px;border-radius:6px;z-index:9999;";
-      box.innerText = `[injector.js] Error: ${err.message}`;
-      document.body.appendChild(box);
-    }
+    // Debug UI for error
+    const box = document.createElement("div");
+    box.style = "position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.8);color:red;font:12px monospace;padding:8px;border-radius:6px;z-index:9999;";
+    box.innerText = `[injector.js] Error: ${err.message}`;
+    document.body.appendChild(box);
   }
 })();

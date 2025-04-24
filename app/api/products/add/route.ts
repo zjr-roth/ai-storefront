@@ -47,9 +47,9 @@ export async function POST(req: Request) {
     .select("id, title, price")
     .eq("site_id", site_id)
     .eq("buy_url", buy_url)
-    .single();
+    .maybeSingle();
 
-  if (fetchError && fetchError.code !== "PGRST116") {
+  if (fetchError) {
     // PGRST116 is "no rows returned" - any other error is a problem
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
