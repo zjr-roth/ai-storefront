@@ -62,6 +62,44 @@
     return match[0].replace(/[^\d.]/g, '');
   };
 
+  // Function to record manifest fetch events
+  const recordManifestFetch = async () => {
+    // Get site_id from localStorage
+    const siteId = localStorage.getItem("site_id");
+
+    if (!siteId) {
+      console.warn("[injector.js] Cannot record manifest fetch: site_id not found in localStorage");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/api/metrics/record`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          site_id: siteId,
+          event_type: 'manifest_fetched',
+          payload: {
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+            user_agent: navigator.userAgent
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+      }
+
+      console.log("[injector.js] ✅ Recorded manifest fetch event");
+    } catch (error) {
+      console.error("[injector.js] ❌ Failed to record manifest fetch:", error.message);
+      // Non-blocking - continue execution even if this fails
+    }
+  };
+
   // 2) Site registration
   let siteId = localStorage.getItem("site_id");
   if (!siteId) {
@@ -378,6 +416,10 @@
     }
 
     const { products } = await manRes.json();
+
+    // Record the manifest fetch event after successful fetch
+    await recordManifestFetch();
+
     if (!products || !Array.isArray(products) || products.length === 0) {
       console.warn("[injector.js] No products found in manifest");
       return;
