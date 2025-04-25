@@ -1,0 +1,30 @@
+[
+    {
+      "title": "Stainless Steel Water Bottle",
+      "price": "24.99",
+      "description": "Double-walled insulated water bottle that keeps drinks cold for 24 hours or hot for 12 hours.",
+      "image_url": "https://picsum.photos/400/400?random=4",
+      "buy_url": "https://example.com/products/stainless-steel-water-bottle"
+    },
+    {
+      "title": "Organic Cotton T-Shirt",
+      "price": "19.99",
+      "description": "100% organic cotton t-shirt. Sustainable, comfortable, and available in multiple colors.",
+      "image_url": "https://picsum.photos/400/400?random=5",
+      "buy_url": "https://example.com/products/organic-cotton-t-shirt"
+    },
+    {
+      "title": "Bamboo Cutting Board",
+      "price": "29.99",
+      "description": "Eco-friendly bamboo cutting board with juice groove. Naturally antibacterial.",
+      "image_url": "https://picsum.photos/400/400?random=6",
+      "buy_url": "https://example.com/products/bamboo-cutting-board"
+    },
+    {
+      "title": "Yoga Mat",
+      "price": "42.50",
+      "description": "Non-slip, eco-friendly yoga mat with carrying strap. 5mm thickness for extra comfort.",
+      "image_url": "https://picsum.photos/400/400?random=7",
+      "buy_url": "https://example.com/products/yoga-mat"
+    }
+  ]

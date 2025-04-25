@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>http://localhost:3000/test-product-sitemap.xml</loc>
+    <lastmod>2023-04-06T12:32:37+00:00</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>http://localhost:3000/test-category-sitemap.xml</loc>
+    <lastmod>2023-04-05T14:24:52+00:00</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>http://localhost:3000/test-pages-sitemap.xml</loc>
+    <lastmod>2023-04-04T09:17:21+00:00</lastmod>
+  </sitemap>
+</sitemapindex>

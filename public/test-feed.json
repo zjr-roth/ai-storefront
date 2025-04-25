@@ -1,0 +1,90 @@
+{
+    "products": [
+      {
+        "id": 1,
+        "title": "Premium Leather Wallet",
+        "body_html": "Handcrafted genuine leather wallet with multiple card slots and RFID protection.",
+        "vendor": "Leather Goods Co.",
+        "product_type": "Accessories",
+        "handle": "premium-leather-wallet",
+        "variants": [
+          {
+            "id": 101,
+            "title": "Brown",
+            "price": "49.99",
+            "sku": "LW-BR-001",
+            "inventory_quantity": 25
+          },
+          {
+            "id": 102,
+            "title": "Black",
+            "price": "49.99",
+            "sku": "LW-BL-001",
+            "inventory_quantity": 18
+          }
+        ],
+        "images": [
+          {
+            "id": 1001,
+            "src": "https://picsum.photos/400/400?random=1",
+            "position": 1
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Wireless Bluetooth Earbuds",
+        "body_html": "High-quality sound with noise cancellation and 24-hour battery life.",
+        "vendor": "AudioTech",
+        "product_type": "Electronics",
+        "handle": "wireless-bluetooth-earbuds",
+        "variants": [
+          {
+            "id": 201,
+            "title": "White",
+            "price": "89.99",
+            "sku": "BE-WT-001",
+            "inventory_quantity": 42
+          },
+          {
+            "id": 202,
+            "title": "Black",
+            "price": "89.99",
+            "sku": "BE-BL-001",
+            "inventory_quantity": 37
+          }
+        ],
+        "images": [
+          {
+            "id": 2001,
+            "src": "https://picsum.photos/400/400?random=2",
+            "position": 1
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Ceramic Coffee Mug Set",
+        "body_html": "Set of 4 handmade ceramic coffee mugs in assorted colors. Microwave and dishwasher safe.",
+        "vendor": "HomeStyle",
+        "product_type": "Kitchen",
+        "handle": "ceramic-coffee-mug-set",
+        "variants": [
+          {
+            "id": 301,
+            "title": "Assorted Colors",
+            "price": "34.99",
+            "sku": "CM-AS-001",
+            "inventory_quantity": 15
+          }
+        ],
+        "images": [
+          {
+            "id": 3001,
+            "src": "https://picsum.photos/400/400?random=3",
+            "position": 1
+          }
+        ]
+      }
+    ]
+  }
