@@ -57,8 +57,8 @@
     return numericPart;
   };
 
-  // Function to record manifest fetch events
-  const recordManifestFetch = async () => {
+  // Function to record manifest fetch events with enhanced analytics
+  const recordManifestFetch = async (manifestProducts = []) => {
     // Get site_id from localStorage
     const siteId = localStorage.getItem("site_id");
 
@@ -70,6 +70,15 @@
     }
 
     try {
+      // Track timing information
+      const fetchStartTime = performance.now();
+
+      // Capture agent name from user agent
+      const userAgent = navigator.userAgent;
+
+      // Track which products were shown in the manifest
+      const productTitles = manifestProducts.map(p => p.title).slice(0, 5); // First 5 products
+
       console.log("[injector.js] Recording manifest fetch event for site_id:", siteId);
       const response = await fetch(`${baseUrl}/api/metrics/record`, {
         method: 'POST',
@@ -82,7 +91,10 @@
           payload: {
             url: window.location.href,
             timestamp: new Date().toISOString(),
-            user_agent: navigator.userAgent
+            user_agent: userAgent,
+            response_time_ms: Math.round(performance.now() - fetchStartTime),
+            products_shown: productTitles,
+            referrer: document.referrer || null
           }
         })
       });
@@ -91,7 +103,7 @@
         throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
       }
 
-      console.log("[injector.js] ✅ Recorded manifest fetch event");
+      console.log("[injector.js] ✅ Recorded manifest fetch event with analytics data");
     } catch (error) {
       console.error("[injector.js] ❌ Failed to record manifest fetch:", error.message);
       // Non-blocking - continue execution even if this fails
@@ -189,7 +201,7 @@
 
   // Check for any elements with 'product' class using traditional DOM methods
   const productElements = document.getElementsByClassName('product');
-  debugLog(`Found ${productElements.length} elements with class='product'`);
+  debugLog(`Found ${productElements.length} products with class='product'`);
 
   if (productElements.length > 0) {
     // Log each product element
@@ -684,7 +696,7 @@
 
     // Record the manifest fetch event after successful fetch
     debugLog("Recording manifest fetch event");
-    await recordManifestFetch();
+    await recordManifestFetch(manifestProducts);
 
     if (!manifestProducts || !Array.isArray(manifestProducts) || manifestProducts.length === 0) {
       console.warn("[injector.js] No products found in manifest");
@@ -772,6 +784,44 @@
 - ${injected.length} products from manifest injected<br>
 <br>Products found: ${products.map(p => p.title).join(', ')}`;
     document.body.appendChild(box);
+
+    // 7) Check for missing schema on homepage
+    if (window.location.pathname === "/" || window.location.pathname === "") {
+      const hasJsonLd = !!document.querySelector('script[type="application/ld+json"]');
+      debugLog(`Homepage detected. JSON-LD schema present: ${hasJsonLd}`);
+
+      if (!hasJsonLd) {
+        debugLog("Missing JSON-LD schema on homepage. Recording event.");
+        try {
+          const siteId = localStorage.getItem("site_id");
+          if (siteId) {
+            await fetch(`${baseUrl}/api/metrics/record`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                site_id: siteId,
+                event_type: "schema_missing",
+                payload: {
+                  url: window.location.href,
+                  timestamp: new Date().toISOString(),
+                  user_agent: navigator.userAgent,
+                  path: window.location.pathname,
+                  referrer: document.referrer || null
+                }
+              })
+            });
+            console.log("[injector.js] Recorded schema_missing event");
+          } else {
+            console.warn("[injector.js] Cannot record schema_missing event: site_id not found");
+          }
+        } catch (error) {
+          console.error("[injector.js] Failed to record schema_missing event:", error);
+          // Non-blocking - continue execution
+        }
+      }
+    }
 
   } catch (err) {
     console.warn("[injector.js] ❌ Injection error:", err.message);
