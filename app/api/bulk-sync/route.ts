@@ -155,7 +155,8 @@ async function processFeedUrl(url: string, site_id: string): Promise<{
   }
 }
 
-// Process sitemap URL (XML)
+// Modified processSitemapUrl function in app/api/bulk-sync/route.ts
+
 async function processSitemapUrl(url: string, site_id: string): Promise<{
   inserted: number;
   updated: number;
@@ -173,7 +174,8 @@ async function processSitemapUrl(url: string, site_id: string): Promise<{
       const urlEntries = Array.isArray(xml.urlset.url) ? xml.urlset.url : [xml.urlset.url];
       urls = urlEntries
         .map((entry: any) => entry.loc)
-        .filter((loc: string) => loc.includes('/products/'));
+        // Filter for product URLs
+        .filter((loc: string) => loc.includes('/products/') || loc.includes('/test-products/'));
     } else if (xml.sitemapindex?.sitemap) {
       // Sitemap index - we'll just take the first product sitemap for MVP
       const sitemaps = Array.isArray(xml.sitemapindex.sitemap)
@@ -190,7 +192,7 @@ async function processSitemapUrl(url: string, site_id: string): Promise<{
 
             urls = urlEntries
               .map((entry: any) => entry.loc)
-              .filter((loc: string) => loc.includes('/products/'));
+              .filter((loc: string) => loc.includes('/products/') || loc.includes('/test-products/'));
 
             break; // Just process the first product sitemap
           }
@@ -201,27 +203,45 @@ async function processSitemapUrl(url: string, site_id: string): Promise<{
     // Limit to 500 URLs for MVP
     urls = urls.slice(0, 500);
 
-    // For Shopify, append .json to product URLs
-    const productJsonUrls = urls.map(url => {
-      // Check if this is likely a Shopify product URL
-      if (url.includes('.myshopify.com/') || url.includes('/products/')) {
-        return url.endsWith('.json') ? url : `${url}.json`;
-      }
-      return url;
-    });
+    console.log("Extracted URLs from sitemap:", urls);
 
-    // Fetch product data in batches
+    // Process URLs according to their format
     const products: ProductData[] = [];
 
     await batchPromises(
-      productJsonUrls,
+      urls,
       10, // Process 10 at a time
       async (url) => {
         try {
-          const json = await fetchJson(url);
-          // Shopify product endpoint returns { product: {...} }
-          if (json.product) {
-            products.push(normalizeShopifyProduct(json.product));
+          // Determine URL format and adjust for fetching
+          let fetchUrl = url;
+
+          // For test-products URLs, don't modify the URL
+          if (url.includes('/test-products/')) {
+            console.log(`Fetching test product from ${url}`);
+            const response = await fetch(url);
+
+            if (!response.ok) {
+              throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+            }
+
+            const json = await response.json();
+            // Check if the response contains a product object
+            if (json?.product) {
+              products.push(normalizeShopifyProduct(json.product));
+            } else {
+              console.log(`Response from ${url} doesn't contain expected product format:`, json);
+            }
+          }
+          // For Shopify product URLs, append .json if needed
+          else if (url.includes('/products/')) {
+            fetchUrl = url.endsWith('.json') ? url : `${url}.json`;
+            console.log(`Fetching Shopify product from ${fetchUrl}`);
+
+            const json = await fetchJson(fetchUrl);
+            if (json.product) {
+              products.push(normalizeShopifyProduct(json.product));
+            }
           }
         } catch (error) {
           console.error(`Error fetching product from ${url}:`, error);
@@ -229,6 +249,8 @@ async function processSitemapUrl(url: string, site_id: string): Promise<{
         }
       }
     );
+
+    console.log(`Extracted ${products.length} products from sitemap URLs`);
 
     // Process products
     const results = await batchPromises(
