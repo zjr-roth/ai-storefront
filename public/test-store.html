@@ -1,139 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bonsai Scissors – AI-Ready Store</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 4rem auto;
-      padding: 0 2rem;
-    }
-    img {
-      width: 100%;
-      max-width: 300px;
-      margin-bottom: 1rem;
-    }
-    .buy-button {
-      display: inline-block;
-      background: #0066cc;
-      color: white;
-      padding: 8px 16px;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div id="product-list">
-    <div class="product">
-      <h1>Bonsai Scissors</h1>
-      <img src="https://picsum.photos/seed/scissors/400/400" alt="Bonsai Scissors" />
-      <p>A pair of premium stainless steel scissors for bonsai enthusiasts. Precision-crafted. Lightweight. Sharp.</p>
-      <p class="price"><strong>$24.99</strong></p>
-      <a href="https://example.com/buy" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Zen Rake</h1>
-      <img src="https://picsum.photos/seed/rake/400/400" alt="Zen Rake" />
-      <p>Stainless steel rake for grooming fine gravel. Perfect for Zen gardens.</p>
-      <p class="price">$19.99</p>
-      <a href="https://example.com/buy/zen-rake" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Moss Spray Bottle</h1>
-      <img src="https://picsum.photos/seed/spray/400/400" alt="Moss Spray Bottle" />
-      <p>Fine mist spray bottle for moss maintenance. BPA-free. Leak-proof.</p>
-      <p class="price">$12.00</p>
-      <a href="https://example.com/buy/moss-spray" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Bamboo Tweezers</h1>
-      <img src="https://picsum.photos/seed/tweezers/400/400" alt="Bamboo Tweezers" />
-      <p>Lightweight tweezers for fine placement in terrariums and bonsai settings.</p>
-      <p class="price">$9.50</p>
-      <a href="https://example.com/buy/tweezers" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Mini Pruning Shears</h1>
-      <img src="https://picsum.photos/seed/shears/400/400" alt="Mini Shears" />
-      <p>Carbon steel mini shears. Ideal for small stem trimming in tight spaces.</p>
-      <p class="price">$22.00</p>
-      <a href="https://example.com/buy/mini-shears" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Root Hook</h1>
-      <img src="https://picsum.photos/seed/hook/400/400" alt="Root Hook" />
-      <p>Single-prong root hook for gentle soil loosening. Strong wooden handle.</p>
-      <p class="price">$13.49</p>
-      <a href="https://example.com/buy/root-hook" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Terrarium Brush Set</h1>
-      <img src="https://picsum.photos/seed/brush/400/400" alt="Terrarium Brush Set" />
-      <p>3-piece set: fine, medium, and wide brushes for cleaning glass and moss.</p>
-      <p class="price">$16.75</p>
-      <a href="https://example.com/buy/brush-set" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Soil Scoop Trio</h1>
-      <img src="https://picsum.photos/seed/scoop/400/400" alt="Soil Scoops" />
-      <p>Stainless steel scoops in 3 sizes. Durable and easy to clean.</p>
-      <p class="price">$14.95</p>
-      <a href="https://example.com/buy/scoops" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Driftwood Decoration</h1>
-      <img src="https://picsum.photos/seed/driftwood/400/400" alt="Driftwood Decoration" />
-      <p>Natural driftwood pieces. Perfect for aquascapes, terrariums, or bonsai pots.</p>
-      <p class="price">$18.99</p>
-      <a href="https://example.com/buy/driftwood" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Humidity Dome</h1>
-      <img src="https://picsum.photos/seed/dome/400/400" alt="Humidity Dome" />
-      <p>Clear plastic dome with vents. Keeps moss and seedlings thriving.</p>
-      <p class="price">$10.00</p>
-      <a href="https://example.com/buy/dome" class="buy-button">Buy Now</a>
-    </div>
-    <div class="product">
-      <h1>Granite Gravel</h1>
-      <img src="https://picsum.photos/seed/gravel/400/400" alt="Granite Gravel" />
-      <p>1 lb of premium crushed granite for top-dressing bonsai soil. Dust-free.</p>
-      <p class="price">$8.25</p>
-      <a href="https://example.com/buy/gravel" class="buy-button">Buy Now</a>
-    </div>
-  </div>
-  <hr />
-  <p><em>This is a test page for structured data injection. Check DevTools → Elements to view the injected <code>&lt;script type="application/ld+json"&gt;</code>.</em></p>
-  <!-- Add this at the bottom of test-store.html, before the closing </body> tag -->
-  <script src="http://localhost:3000/injector.v1.js"></script>
-  <script>
-    console.log("DEBUG SCRIPT LOADED");
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Bonsai Scissors – AI-Ready Store</title>
+		<style>
+			body {
+				font-family: sans-serif;
+				max-width: 600px;
+				margin: 4rem auto;
+				padding: 0 2rem;
+			}
+			img {
+				width: 100%;
+				max-width: 300px;
+				margin-bottom: 1rem;
+			}
+			.buy-button {
+				display: inline-block;
+				background: #0066cc;
+				color: white;
+				padding: 8px 16px;
+				text-decoration: none;
+				border-radius: 4px;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="product-list">
+			<div class="product">
+				<h1>Bonsai Scissors</h1>
+				<img
+					src="https://picsum.photos/seed/scissors/400/400"
+					alt="Bonsai Scissors"
+				/>
+				<p>
+					A pair of premium stainless steel scissors for bonsai
+					enthusiasts. Precision-crafted. Lightweight. Sharp.
+				</p>
+				<p class="price"><strong>$24.99</strong></p>
+				<a href="https://example.com/buy" class="buy-button">Buy Now</a>
+			</div>
+			<div class="product">
+				<h1>Zen Rake</h1>
+				<img
+					src="https://picsum.photos/seed/rake/400/400"
+					alt="Zen Rake"
+				/>
+				<p>
+					Stainless steel rake for grooming fine gravel. Perfect for
+					Zen gardens.
+				</p>
+				<p class="price">$19.99</p>
+				<a href="https://example.com/buy/zen-rake" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Moss Spray Bottle</h1>
+				<img
+					src="https://picsum.photos/seed/spray/400/400"
+					alt="Moss Spray Bottle"
+				/>
+				<p>
+					Fine mist spray bottle for moss maintenance. BPA-free.
+					Leak-proof.
+				</p>
+				<p class="price">$12.00</p>
+				<a href="https://example.com/buy/moss-spray" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Bamboo Tweezers</h1>
+				<img
+					src="https://picsum.photos/seed/tweezers/400/400"
+					alt="Bamboo Tweezers"
+				/>
+				<p>
+					Lightweight tweezers for fine placement in terrariums and
+					bonsai settings.
+				</p>
+				<p class="price">$9.50</p>
+				<a href="https://example.com/buy/tweezers" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Mini Pruning Shears</h1>
+				<img
+					src="https://picsum.photos/seed/shears/400/400"
+					alt="Mini Shears"
+				/>
+				<p>
+					Carbon steel mini shears. Ideal for small stem trimming in
+					tight spaces.
+				</p>
+				<p class="price">$22.00</p>
+				<a href="https://example.com/buy/mini-shears" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Root Hook</h1>
+				<img
+					src="https://picsum.photos/seed/hook/400/400"
+					alt="Root Hook"
+				/>
+				<p>
+					Single-prong root hook for gentle soil loosening. Strong
+					wooden handle.
+				</p>
+				<p class="price">$13.49</p>
+				<a href="https://example.com/buy/root-hook" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Terrarium Brush Set</h1>
+				<img
+					src="https://picsum.photos/seed/brush/400/400"
+					alt="Terrarium Brush Set"
+				/>
+				<p>
+					3-piece set: fine, medium, and wide brushes for cleaning
+					glass and moss.
+				</p>
+				<p class="price">$16.75</p>
+				<a href="https://example.com/buy/brush-set" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Soil Scoop Trio</h1>
+				<img
+					src="https://picsum.photos/seed/scoop/400/400"
+					alt="Soil Scoops"
+				/>
+				<p>
+					Stainless steel scoops in 3 sizes. Durable and easy to
+					clean.
+				</p>
+				<p class="price">$14.95</p>
+				<a href="https://example.com/buy/scoops" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Driftwood Decoration</h1>
+				<img
+					src="https://picsum.photos/seed/driftwood/400/400"
+					alt="Driftwood Decoration"
+				/>
+				<p>
+					Natural driftwood pieces. Perfect for aquascapes,
+					terrariums, or bonsai pots.
+				</p>
+				<p class="price">$18.99</p>
+				<a href="https://example.com/buy/driftwood" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Humidity Dome</h1>
+				<img
+					src="https://picsum.photos/seed/dome/400/400"
+					alt="Humidity Dome"
+				/>
+				<p>
+					Clear plastic dome with vents. Keeps moss and seedlings
+					thriving.
+				</p>
+				<p class="price">$10.00</p>
+				<a href="https://example.com/buy/dome" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+			<div class="product">
+				<h1>Granite Gravel</h1>
+				<img
+					src="https://picsum.photos/seed/gravel/400/400"
+					alt="Granite Gravel"
+				/>
+				<p>
+					1 lb of premium crushed granite for top-dressing bonsai
+					soil. Dust-free.
+				</p>
+				<p class="price">$8.25</p>
+				<a href="https://example.com/buy/gravel" class="buy-button"
+					>Buy Now</a
+				>
+			</div>
+		</div>
+		<hr />
+		<p>
+			<em
+				>This is a test page for structured data injection. Check
+				DevTools → Elements to view the injected
+				<code>&lt;script type="application/ld+json"&gt;</code>.</em
+			>
+		</p>
+		<!-- Add this at the bottom of test-store.html, before the closing </body> tag -->
+		<script src="http://localhost:3000/injector.v1.js"></script>
+		<script>
+			console.log("DEBUG SCRIPT LOADED");
 
-  // Check if products are in the right structure
-  const products = document.querySelectorAll('.product');
-  console.log(`Found ${products.length} products with .product class`);
+			// Check if products are in the right structure
+			const products = document.querySelectorAll(".product");
+			console.log(
+				`Found ${products.length} products with .product class`
+			);
 
-  // Check product list structure
-  const productList = document.getElementById('product-list');
-  if (productList) {
-    console.log(`Product list contains ${productList.children.length} children`);
+			// Check product list structure
+			const productList = document.getElementById("product-list");
+			if (productList) {
+				console.log(
+					`Product list contains ${productList.children.length} children`
+				);
 
-    // Log each child to see their structure
-    Array.from(productList.children).forEach((child, index) => {
-      console.log(`Child ${index} has class: ${child.className}, tag: ${child.tagName}`);
-      console.log(`Child ${index} innerHTML:`, child.innerHTML.substring(0, 100) + '...');
-    });
-  }
+				// Log each child to see their structure
+				Array.from(productList.children).forEach((child, index) => {
+					console.log(
+						`Child ${index} has class: ${child.className}, tag: ${child.tagName}`
+					);
+					console.log(
+						`Child ${index} innerHTML:`,
+						child.innerHTML.substring(0, 100) + "..."
+					);
+				});
+			}
 
-  // Listen for any error events
-  window.addEventListener('error', function(event) {
-    console.log('Script error detected:', event.message);
-  });
-</script>
-</body>
+			// Listen for any error events
+			window.addEventListener("error", function (event) {
+				console.log("Script error detected:", event.message);
+			});
+		</script>
+	</body>
 </html>

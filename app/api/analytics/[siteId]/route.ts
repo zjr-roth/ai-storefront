@@ -253,7 +253,7 @@ export async function GET(
       monthlyData.push({
         month,
         interaction_count: count,
-        growth_rate: i > 0 ? Math.round((count / monthlyData[monthlyData.length - 1].interaction_count - 1) * 100) : 0
+        growth_rate: 0
       });
     }
 

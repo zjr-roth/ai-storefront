@@ -80,24 +80,24 @@ interface AnalyticsData {
 }
 
 const COLORS = [
-	"#0088FE",
-	"#00C49F",
-	"#FFBB28",
-	"#FF8042",
-	"#8884d8",
-	"#82ca9d",
+	"#3b82f6", // blue-500
+	"#10b981", // emerald-500
+	"#f59e0b", // amber-500
+	"#ef4444", // red-500
+	"#8b5cf6", // violet-500
+	"#ec4899", // pink-500
 ];
 
-export default function StoreAnalytics({ siteId }: StoreAnalyticsProps) {
+export default function StoreAnalytics({
+	siteId,
+	timeRange: initialTimeRange = "30days",
+}: StoreAnalyticsProps) {
 	const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [timeRange, setTimeRange] = useState<"7days" | "30days" | "90days">(
-		"30days"
+		initialTimeRange
 	);
-	const [activeTab, setActiveTab] = useState<
-		"overview" | "engagement" | "performance"
-	>("overview");
 
 	useEffect(() => {
 		async function fetchAnalytics() {
@@ -105,16 +105,16 @@ export default function StoreAnalytics({ siteId }: StoreAnalyticsProps) {
 				setLoading(true);
 
 				// In a real implementation, this would call your API
-				// const response = await fetch(`/api/analytics/${siteId}?timeRange=${timeRange}`);
-				// const data = await response.json();
+				const response = await fetch(
+					`/api/analytics/${siteId}?timeRange=${timeRange}`
+				);
 
-				// For now, we'll use mock data
-				const mockData = generateMockData(timeRange);
+				if (!response.ok) {
+					throw new Error(`API error: ${response.status}`);
+				}
 
-				// Simulate network delay
-				await new Promise((resolve) => setTimeout(resolve, 500));
-
-				setAnalytics(mockData);
+				const data = await response.json();
+				setAnalytics(data);
 			} catch (err: any) {
 				setError(err.message || "Failed to load analytics");
 				console.error("Analytics error:", err);
@@ -130,12 +130,22 @@ export default function StoreAnalytics({ siteId }: StoreAnalyticsProps) {
 
 	if (loading) {
 		return (
-			<div className="bg-white p-6 rounded-md border border-gray-200 shadow-sm mb-6 animate-pulse">
-				<div className="h-6 bg-gray-200 rounded w-1/2 mb-8"></div>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<div className="h-40 bg-gray-100 rounded"></div>
-					<div className="h-40 bg-gray-100 rounded"></div>
-					<div className="h-40 bg-gray-100 rounded"></div>
+			<div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+				<div className="p-6 border-b border-gray-200">
+					<div className="h-6 bg-gray-200 rounded-full w-1/3 mb-4"></div>
+					<div className="flex space-x-2">
+						<div className="h-8 bg-gray-200 rounded w-16"></div>
+						<div className="h-8 bg-gray-200 rounded w-16"></div>
+						<div className="h-8 bg-gray-200 rounded w-16"></div>
+					</div>
+				</div>
+				<div className="p-6">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+						<div className="h-24 bg-gray-100 rounded"></div>
+						<div className="h-24 bg-gray-100 rounded"></div>
+						<div className="h-24 bg-gray-100 rounded"></div>
+					</div>
+					<div className="h-64 bg-gray-100 rounded"></div>
 				</div>
 			</div>
 		);
@@ -143,11 +153,37 @@ export default function StoreAnalytics({ siteId }: StoreAnalyticsProps) {
 
 	if (error) {
 		return (
-			<div className="bg-red-50 p-6 rounded-md border border-red-200 mb-6">
-				<h3 className="text-red-700 font-medium mb-2">
-					Analytics Error
-				</h3>
-				<p className="text-red-600">{error}</p>
+			<div className="bg-red-50 rounded-lg border border-red-200 p-6">
+				<div className="flex items-center">
+					<svg
+						className="h-6 w-6 text-red-600 mr-3"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<h3 className="text-lg font-medium text-red-800">
+						Analytics Error
+					</h3>
+				</div>
+				<div className="mt-2">
+					<p className="text-sm text-red-700">{error}</p>
+				</div>
+				<div className="mt-4">
+					<button
+						onClick={() => window.location.reload()}
+						className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+					>
+						Retry
+					</button>
+				</div>
 			</div>
 		);
 	}
@@ -157,272 +193,279 @@ export default function StoreAnalytics({ siteId }: StoreAnalyticsProps) {
 	}
 
 	return (
-		<div className="bg-white p-6 rounded-md border border-gray-200 shadow-sm mb-6">
-			<div className="flex justify-between items-center mb-6">
-				<h2 className="text-xl text-black font-bold">
-					Store Analytics
-				</h2>
-				<div className="flex space-x-2">
-					<select
-						className="border rounded text-black p-1 text-sm"
-						value={timeRange}
-						onChange={(e) =>
-							setTimeRange(
-								e.target.value as "7days" | "30days" | "90days"
-							)
-						}
+		<div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+			<div className="p-6 border-b border-gray-200 flex items-center justify-between">
+				<h2 className="text-lg font-medium text-gray-900 flex items-center">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						className="h-5 w-5 text-blue-500 mr-2"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
 					>
-						<option className="text-black" value="7days">
-							Last 7 days
-						</option>
-						<option className="text-black" value="30days">
-							Last 30 days
-						</option>
-						<option className="text-black" value="90days">
-							Last 90 days
-						</option>
-					</select>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+						/>
+					</svg>
+					Analytics Overview
+				</h2>
+				<div className="flex space-x-1">
+					<button
+						onClick={() => setTimeRange("7days")}
+						className={`px-3 py-1 text-xs font-medium rounded-md ${
+							timeRange === "7days"
+								? "bg-blue-100 text-blue-800"
+								: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+						}`}
+					>
+						7 Days
+					</button>
+					<button
+						onClick={() => setTimeRange("30days")}
+						className={`px-3 py-1 text-xs font-medium rounded-md ${
+							timeRange === "30days"
+								? "bg-blue-100 text-blue-800"
+								: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+						}`}
+					>
+						30 Days
+					</button>
+					<button
+						onClick={() => setTimeRange("90days")}
+						className={`px-3 py-1 text-xs font-medium rounded-md ${
+							timeRange === "90days"
+								? "bg-blue-100 text-blue-800"
+								: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+						}`}
+					>
+						90 Days
+					</button>
 				</div>
 			</div>
 
-			{/* Tab Navigation */}
-			<div className="flex border-b mb-6">
-				<button
-					onClick={() => setActiveTab("overview")}
-					className={`py-2 px-4 ${
-						activeTab === "overview"
-							? "border-b-2 text-gray-400 border-black font-medium"
-							: "text-black"
-					}`}
-				>
-					Overview
-				</button>
-				<button
-					onClick={() => setActiveTab("engagement")}
-					className={`py-2 px-4 ${
-						activeTab === "engagement"
-							? "border-b-2 text-gray-400 border-black font-medium"
-							: "text-black"
-					}`}
-				>
-					Agent Engagement
-				</button>
-				<button
-					onClick={() => setActiveTab("performance")}
-					className={`py-2 px-4 ${
-						activeTab === "performance"
-							? "border-b-2 text-gray-400 border-black font-medium"
-							: "text-black"
-					}`}
-				>
-					Performance
-				</button>
-			</div>
+			<div className="p-6">
+				{/* Key Metrics */}
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+					<MetricCard
+						title="AI Agent Interactions"
+						value={analytics.agent_interaction_count.toString()}
+						description={analytics.agent_interaction_frequency}
+						icon={
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-7 w-7"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={1.5}
+									d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+								/>
+							</svg>
+						}
+						trend={7}
+						color="blue"
+					/>
+					<MetricCard
+						title="Discovery Rate"
+						value={`${analytics.product_discovery.discovery_rate}%`}
+						description={`${analytics.product_discovery.products_surfaced} of ${analytics.product_discovery.total_products} products`}
+						icon={
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-7 w-7"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={1.5}
+									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={1.5}
+									d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+								/>
+							</svg>
+						}
+						trend={3}
+						color="green"
+					/>
+					<MetricCard
+						title="Conversion Rate"
+						value={`${analytics.ai_conversions.conversion_rate}%`}
+						description={`$${analytics.ai_conversions.revenue.toFixed(
+							2
+						)} estimated revenue`}
+						icon={
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-7 w-7"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={1.5}
+									d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						}
+						trend={2}
+						color="amber"
+					/>
+				</div>
 
-			{/* Tab Content */}
-			{activeTab === "overview" && (
-				<div>
-					{/* Key Metrics */}
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-						<MetricCard
-							title="AI Agent Interactions"
-							value={analytics.agent_interaction_count.toString()}
-							description={analytics.agent_interaction_frequency}
-						/>
-						<MetricCard
-							title="Schema Health"
-							value={`${analytics.schema_health.health_score}%`}
-							description={`${analytics.schema_health.pages_with_schema} of ${analytics.schema_health.total_pages_checked} pages validated`}
-						/>
-						<MetricCard
-							title="Product Discovery"
-							value={`${analytics.product_discovery.discovery_rate}%`}
-							description={`${analytics.product_discovery.products_surfaced} of ${analytics.product_discovery.total_products} products discovered`}
-						/>
-					</div>
-
-					{/* Daily Interactions Chart */}
-					<div className="mb-8">
-						<h3 className="text-lg font-medium text-black mb-4">
+				{/* Daily Interactions Chart */}
+				<div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
+					<div className="flex items-center justify-between mb-4">
+						<h3 className="text-base font-medium text-gray-900">
 							Daily AI Agent Interactions
 						</h3>
-						<div className="h-72">
-							<ResponsiveContainer width="100%" height="100%">
-								<LineChart
-									data={analytics.daily_interactions}
-									margin={{
-										top: 5,
-										right: 30,
-										left: 20,
-										bottom: 5,
+						<span className="text-xs font-medium text-gray-500">
+							{timeRange === "7days"
+								? "Last 7 days"
+								: timeRange === "30days"
+								? "Last 30 days"
+								: "Last 90 days"}
+						</span>
+					</div>
+					<div className="h-72">
+						<ResponsiveContainer width="100%" height="100%">
+							<LineChart
+								data={analytics.daily_interactions}
+								margin={{
+									top: 5,
+									right: 10,
+									left: 10,
+									bottom: 5,
+								}}
+							>
+								<CartesianGrid
+									strokeDasharray="3 3"
+									stroke="#f0f0f0"
+								/>
+								<XAxis
+									dataKey="date"
+									tickFormatter={(date) =>
+										format(parseISO(date), "MMM d")
+									}
+									stroke="#9ca3af"
+									fontSize={12}
+								/>
+								<YAxis stroke="#9ca3af" fontSize={12} />
+								<Tooltip
+									contentStyle={{
+										borderRadius: "0.375rem",
+										border: "1px solid #e5e7eb",
+										boxShadow:
+											"0 1px 3px 0 rgba(0, 0, 0, 0.1)",
 									}}
-								>
-									<CartesianGrid strokeDasharray="3 3" />
-									<XAxis
-										dataKey="date"
-										tickFormatter={(date) =>
-											format(parseISO(date), "MMM d")
+									labelFormatter={(date) =>
+										format(parseISO(date), "MMMM d, yyyy")
+									}
+								/>
+								<Line
+									type="monotone"
+									dataKey="count"
+									name="Agent Interactions"
+									stroke="#3b82f6"
+									activeDot={{ r: 6, strokeWidth: 0 }}
+									dot={{
+										r: 3,
+										strokeWidth: 0,
+										fill: "#3b82f6",
+									}}
+									strokeWidth={2}
+								/>
+							</LineChart>
+						</ResponsiveContainer>
+					</div>
+				</div>
+
+				{/* Top Agents */}
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+					<div className="bg-white p-6 rounded-lg border border-gray-200">
+						<h3 className="text-base font-medium text-gray-900 mb-4">
+							Top AI Agents
+						</h3>
+						<div className="h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<PieChart>
+									<Pie
+										data={analytics.top_referring_agents}
+										cx="50%"
+										cy="50%"
+										innerRadius={70}
+										outerRadius={90}
+										fill="#8884d8"
+										paddingAngle={3}
+										dataKey="visit_count"
+										nameKey="agent_name"
+										label={({ name, percent }) =>
+											`${name}: ${(percent * 100).toFixed(
+												0
+											)}%`
 										}
-									/>
-									<YAxis />
-									<Tooltip
-										labelFormatter={(date) =>
-											format(
-												parseISO(date),
-												"MMMM d, yyyy"
+										labelLine={false}
+									>
+										{analytics.top_referring_agents.map(
+											(entry, index) => (
+												<Cell
+													key={`cell-${index}`}
+													fill={
+														COLORS[
+															index %
+																COLORS.length
+														]
+													}
+													strokeWidth={1}
+												/>
 											)
-										}
+										)}
+									</Pie>
+									<Tooltip
+										formatter={(value) => [
+											`${value} visits`,
+											"Count",
+										]}
+										contentStyle={{
+											borderRadius: "0.375rem",
+											border: "1px solid #e5e7eb",
+											boxShadow:
+												"0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+										}}
 									/>
-									<Legend />
-									<Line
-										type="monotone"
-										dataKey="count"
-										name="Agent Interactions"
-										stroke="#0070f3"
-										activeDot={{ r: 8 }}
-									/>
-								</LineChart>
+								</PieChart>
 							</ResponsiveContainer>
 						</div>
 					</div>
 
 					{/* Most Surfaced Products */}
-					<div>
-						<h3 className="text-lg text-black font-medium mb-4">
+					<div className="bg-white p-6 rounded-lg border border-gray-200">
+						<h3 className="text-base font-medium text-gray-900 mb-4">
 							Most Surfaced Products
 						</h3>
-						<div className="h-72">
+						<div className="h-64">
 							<ResponsiveContainer width="100%" height="100%">
 								<BarChart
-									data={analytics.most_surfaced_products}
+									data={analytics.most_surfaced_products.slice(
+										0,
+										5
+									)}
 									layout="vertical"
-									margin={{
-										top: 5,
-										right: 30,
-										left: 120,
-										bottom: 5,
-									}}
-								>
-									<CartesianGrid strokeDasharray="3 3" />
-									<XAxis type="number" />
-									<YAxis
-										type="category"
-										dataKey="title"
-										width={100}
-										tickFormatter={(title) =>
-											title.length > 20
-												? `${title.substring(0, 20)}...`
-												: title
-										}
-									/>
-									<Tooltip />
-									<Legend />
-									<Bar
-										dataKey="impression_count"
-										name="Impressions"
-										fill="#0070f3"
-									/>
-								</BarChart>
-							</ResponsiveContainer>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{activeTab === "engagement" && (
-				<div>
-					{/* Top Referring Agents */}
-					<div className="mb-8">
-						<h3 className="text-lg font-medium mb-4">
-							Top Referring AI Agents
-						</h3>
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							<div className="h-72">
-								<ResponsiveContainer width="100%" height="100%">
-									<PieChart>
-										<Pie
-											data={
-												analytics.top_referring_agents
-											}
-											cx="50%"
-											cy="50%"
-											labelLine={false}
-											outerRadius={80}
-											dataKey="visit_count"
-											nameKey="agent_name"
-											label={({ agent_name, percent }) =>
-												`${agent_name}: ${(
-													percent * 100
-												).toFixed(0)}%`
-											}
-										>
-											{analytics.top_referring_agents.map(
-												(entry, index) => (
-													<Cell
-														key={`cell-${index}`}
-														fill={
-															COLORS[
-																index %
-																	COLORS.length
-															]
-														}
-													/>
-												)
-											)}
-										</Pie>
-										<Tooltip
-											formatter={(value) => [
-												`${value} visits`,
-												"Count",
-											]}
-										/>
-										<Legend />
-									</PieChart>
-								</ResponsiveContainer>
-							</div>
-							<div>
-								<div className="bg-gray-50 p-4 rounded-md">
-									<h4 className="font-medium mb-2">
-										Agent Engagement Overview
-									</h4>
-									<p className="text-sm text-gray-600 mb-4">
-										AI Agents have generated{" "}
-										{analytics.ai_conversions.visit_count}{" "}
-										visits to your store, resulting in{" "}
-										{
-											analytics.ai_conversions
-												.conversion_count
-										}{" "}
-										conversions (
-										{
-											analytics.ai_conversions
-												.conversion_rate
-										}
-										% conversion rate).
-									</p>
-									<h4 className="font-medium mb-2">
-										Estimated Revenue Impact
-									</h4>
-									<p className="text-2xl font-bold">
-										$
-										{analytics.ai_conversions.revenue.toFixed(
-											2
-										)}
-									</p>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					{/* Monthly Engagement Growth */}
-					<div className="mb-8">
-						<h3 className="text-lg font-medium mb-4">
-							Monthly Engagement Growth
-						</h3>
-						<div className="h-72">
-							<ResponsiveContainer width="100%" height="100%">
-								<BarChart
-									data={analytics.monthly_engagement}
 									margin={{
 										top: 5,
 										right: 30,
@@ -430,243 +473,207 @@ export default function StoreAnalytics({ siteId }: StoreAnalyticsProps) {
 										bottom: 5,
 									}}
 								>
-									<CartesianGrid strokeDasharray="3 3" />
-									<XAxis dataKey="month" />
-									<YAxis />
+									<CartesianGrid
+										strokeDasharray="3 3"
+										stroke="#f0f0f0"
+										horizontal={true}
+										vertical={false}
+									/>
+									<XAxis
+										type="number"
+										stroke="#9ca3af"
+										fontSize={12}
+									/>
+									<YAxis
+										type="category"
+										dataKey="title"
+										width={120}
+										stroke="#9ca3af"
+										fontSize={12}
+										tickFormatter={(title) =>
+											title.length > 15
+												? `${title.substring(0, 15)}...`
+												: title
+										}
+									/>
 									<Tooltip
-										formatter={(value, name) => [
-											name === "growth_rate"
-												? `${value}%`
-												: value,
-											name === "growth_rate"
-												? "Growth Rate"
-												: "Interactions",
+										formatter={(value) => [
+											`${value} impressions`,
+											"Count",
 										]}
+										contentStyle={{
+											borderRadius: "0.375rem",
+											border: "1px solid #e5e7eb",
+											boxShadow:
+												"0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+										}}
 									/>
-									<Legend />
 									<Bar
-										dataKey="interaction_count"
-										name="Interactions"
-										fill="#0070f3"
-									/>
-									<Bar
-										dataKey="growth_rate"
-										name="Growth Rate (%)"
-										fill="#00C49F"
+										dataKey="impression_count"
+										name="Impressions"
+										fill="#10b981"
+										radius={[0, 4, 4, 0]}
 									/>
 								</BarChart>
 							</ResponsiveContainer>
 						</div>
 					</div>
 				</div>
-			)}
 
-			{activeTab === "performance" && (
-				<div>
-					{/* Performance Metrics */}
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-						<MetricCard
-							title="Avg Response Time"
-							value={`${analytics.manifest_performance.avg_response_time_ms} ms`}
-							description={`P95: ${analytics.manifest_performance.p95_response_time_ms} ms`}
-						/>
-						<MetricCard
-							title="Data Freshness"
-							value={`${analytics.data_freshness.avg_product_age_days} days`}
-							description={`${analytics.data_freshness.products_updated_last_7d} products updated in last 7 days`}
-						/>
-						<MetricCard
-							title="Schema Health"
-							value={`${analytics.schema_health.health_score}%`}
-							description={`${analytics.schema_health.pages_with_schema} of ${analytics.schema_health.total_pages_checked} pages with valid schema`}
-						/>
-					</div>
-
-					{/* Product Data Freshness */}
-					<div className="mb-8">
-						<h3 className="text-lg font-medium mb-4">
-							Product Data Age Distribution
-						</h3>
-						<div className="p-4 bg-gray-50 rounded-md mb-4">
-							<p className="text-sm text-gray-600">
-								Your products are updated on average every{" "}
-								{analytics.data_freshness.avg_product_age_days}{" "}
-								days. The oldest product data was last updated
-								on{" "}
-								{format(
-									parseISO(
-										analytics.data_freshness
-											.oldest_product_updated_at
-									),
-									"MMMM d, yyyy"
-								)}
-								.
-							</p>
+				{/* Bottom Section */}
+				<div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+					<div className="flex">
+						<div className="flex-shrink-0">
+							<svg
+								className="h-5 w-5 text-blue-400"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path
+									fillRule="evenodd"
+									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z"
+									clipRule="evenodd"
+								/>
+							</svg>
 						</div>
-
-						{/* Product Data Freshness Chart would go here */}
-						<div className="h-64 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
-							Product Age Distribution Chart
-							<br />
-							(Implementation would use actual product update
-							timestamps)
-						</div>
-					</div>
-
-					{/* Schema Validation Results */}
-					<div>
-						<h3 className="text-lg font-medium mb-4">
-							Schema Validation History
-						</h3>
-						<div className="p-4 bg-gray-50 rounded-md mb-4">
-							<p className="text-sm text-gray-600">
-								Schema health score:{" "}
-								<span className="font-medium">
-									{analytics.schema_health.health_score}%
-								</span>
-								<br />
-								{
-									analytics.schema_health.pages_with_schema
-								} of{" "}
-								{analytics.schema_health.total_pages_checked}{" "}
-								pages have valid schema.
-							</p>
-						</div>
-
-						{/* Schema Validation Chart would go here */}
-						<div className="h-64 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
-							Schema Validation History Chart
-							<br />
-							(Implementation would track schema_missing events
-							over time)
+						<div className="ml-3">
+							<h3 className="text-sm font-medium text-blue-800">
+								Analytics Tip
+							</h3>
+							<div className="mt-2 text-sm text-blue-700">
+								<p>
+									Based on your data, AI agents are
+									successfully discovering{" "}
+									{analytics.product_discovery.discovery_rate}
+									% of your products. Consider enhancing your
+									product descriptions to improve discovery
+									even further.
+								</p>
+							</div>
 						</div>
 					</div>
 				</div>
-			)}
+			</div>
 		</div>
 	);
 }
 
-// Helper component for metric cards
 function MetricCard({
 	title,
 	value,
 	description,
+	icon,
+	trend,
+	color = "blue",
 }: {
 	title: string;
 	value: string;
 	description: string;
+	icon: React.ReactNode;
+	trend: number;
+	color: "blue" | "green" | "amber" | "red";
 }) {
+	const colorMap = {
+		blue: {
+			bg: "bg-blue-50",
+			iconBg: "bg-blue-100",
+			iconText: "text-blue-600",
+			title: "text-blue-800",
+			value: "text-blue-900",
+			desc: "text-blue-600",
+			trendUp: "text-blue-700",
+			trendDown: "text-red-600",
+		},
+		green: {
+			bg: "bg-green-50",
+			iconBg: "bg-green-100",
+			iconText: "text-green-600",
+			title: "text-green-800",
+			value: "text-green-900",
+			desc: "text-green-600",
+			trendUp: "text-green-700",
+			trendDown: "text-red-600",
+		},
+		amber: {
+			bg: "bg-amber-50",
+			iconBg: "bg-amber-100",
+			iconText: "text-amber-600",
+			title: "text-amber-800",
+			value: "text-amber-900",
+			desc: "text-amber-600",
+			trendUp: "text-green-700",
+			trendDown: "text-red-600",
+		},
+		red: {
+			bg: "bg-red-50",
+			iconBg: "bg-red-100",
+			iconText: "text-red-600",
+			title: "text-red-800",
+			value: "text-red-900",
+			desc: "text-red-600",
+			trendUp: "text-green-700",
+			trendDown: "text-red-700",
+		},
+	};
+
+	const colors = colorMap[color];
+
 	return (
-		<div className="bg-gray-50 p-4 rounded-md">
-			<h3 className="text-sm font-medium text-gray-500 mb-1">{title}</h3>
-			<p className="text-2xl font-bold mb-1">{value}</p>
-			<p className="text-xs text-gray-600">{description}</p>
+		<div className={`${colors.bg} rounded-lg p-5 border border-gray-200`}>
+			<div className="flex items-center justify-between">
+				<div
+					className={`h-12 w-12 rounded-lg ${colors.iconBg} flex items-center justify-center ${colors.iconText}`}
+				>
+					{icon}
+				</div>
+				{trend !== 0 && (
+					<div className="flex items-center">
+						<span
+							className={`text-xs font-medium ${
+								trend > 0 ? colors.trendUp : colors.trendDown
+							}`}
+						>
+							{trend > 0 ? "+" : ""}
+							{trend}%
+						</span>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							className={`h-4 w-4 ml-1 ${
+								trend > 0 ? colors.trendUp : colors.trendDown
+							}`}
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							{trend > 0 ? (
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M5 10l7-7m0 0l7 7m-7-7v18"
+								/>
+							) : (
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M19 14l-7 7m0 0l-7-7m7 7V3"
+								/>
+							)}
+						</svg>
+					</div>
+				)}
+			</div>
+			<div className="mt-4">
+				<h3 className={`text-sm font-medium ${colors.title}`}>
+					{title}
+				</h3>
+				<p className={`text-2xl font-bold mt-1 ${colors.value}`}>
+					{value}
+				</p>
+				<p className={`text-xs mt-1 ${colors.desc}`}>{description}</p>
+			</div>
 		</div>
 	);
-}
-
-// Mock data generator function
-function generateMockData(timeRange: string): AnalyticsData {
-	const today = new Date();
-
-	// Generate daily interactions for the selected time range
-	const daysCount =
-		timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-	const dailyInteractions = Array.from({ length: daysCount }, (_, i) => {
-		const date = subDays(today, daysCount - i - 1);
-		return {
-			date: date.toISOString().split("T")[0],
-			count: Math.floor(Math.random() * 20) + 10, // Random between 10-30
-		};
-	});
-
-	// Calculate total interactions from the daily data
-	const totalInteractions = dailyInteractions.reduce(
-		(sum, day) => sum + day.count,
-		0
-	);
-
-	// Generate mock monthly engagement data
-	const monthlyEngagement = [
-		{ month: "Jan", interaction_count: 240, growth_rate: 0 },
-		{ month: "Feb", interaction_count: 280, growth_rate: 16.7 },
-		{ month: "Mar", interaction_count: 300, growth_rate: 7.1 },
-		{ month: "Apr", interaction_count: 340, growth_rate: 13.3 },
-	];
-
-	return {
-		// Agent Interaction Metrics
-		agent_interaction_count: totalInteractions,
-		agent_interaction_frequency: `${(totalInteractions / daysCount).toFixed(
-			1
-		)} per day`,
-		most_surfaced_products: [
-			{
-				product_id: "p1",
-				title: "Premium Leather Wallet",
-				impression_count: 78,
-			},
-			{
-				product_id: "p2",
-				title: "Wireless Bluetooth Earbuds",
-				impression_count: 65,
-			},
-			{
-				product_id: "p3",
-				title: "Stainless Steel Water Bottle",
-				impression_count: 52,
-			},
-			{
-				product_id: "p4",
-				title: "Ceramic Coffee Mug Set",
-				impression_count: 47,
-			},
-			{
-				product_id: "p5",
-				title: "Bamboo Cutting Board",
-				impression_count: 34,
-			},
-		],
-		top_referring_agents: [
-			{ agent_name: "Claude", visit_count: 145 },
-			{ agent_name: "Google Assistant", visit_count: 98 },
-			{ agent_name: "ChatGPT", visit_count: 76 },
-			{ agent_name: "Bing Chat", visit_count: 42 },
-			{ agent_name: "Other Agents", visit_count: 28 },
-		],
-
-		// Performance Metrics
-		schema_health: {
-			total_pages_checked: 18,
-			pages_with_schema: 16,
-			health_score: 89,
-		},
-		manifest_performance: {
-			avg_response_time_ms: 124,
-			p95_response_time_ms: 287,
-		},
-		data_freshness: {
-			avg_product_age_days: 12,
-			oldest_product_updated_at: subDays(today, 32).toISOString(),
-			products_updated_last_7d: 8,
-		},
-
-		// Business Impact Metrics
-		ai_conversions: {
-			visit_count: totalInteractions,
-			conversion_count: Math.floor(totalInteractions * 0.06), // 6% conversion rate
-			conversion_rate: 6.0,
-			revenue: totalInteractions * 0.06 * 45.75, // Avg order value $45.75
-		},
-		product_discovery: {
-			total_products: 14,
-			products_surfaced: 12,
-			discovery_rate: 86,
-		},
-
-		// Time Series Data
-		monthly_engagement: monthlyEngagement,
-		daily_interactions: dailyInteractions,
-	};
 }
